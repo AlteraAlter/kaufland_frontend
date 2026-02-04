@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kaufland</title>
+
+    <link rel="stylesheet" href="css/main.css" />
+</head>
+
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="logo-container">
+                <div class="img-logo">
+                    <p>K</p>
+                </div>
+                <div class="logo-text">
+                    <h1 class="title-primary">Kaufland</h1>
+                    <p class="title-secondary">Automation</p>
+                </div>
+            </div>
+
+            <div class="auth-buttons">
+                <button class="login-button" id="loginBtn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        class="lucide lucide-log-in enter-svg">
+                        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+                        <polyline points="10 17 15 12 10 7"></polyline>
+                        <line x1="15" x2="3" y1="12" y2="12"></line>
+                    </svg>
+                    Войти
+                </button>
+            </div>
+        </header>
+
+        <!-- MODAL -->
+        <div class="login-modal" id="login-modal">
+            <div class="login-modal-content" id="login-modal-content">
+                <div class="modal-headers">
+                    <h2>Вход в систему</h2>
+                    <p>Введите ваши данные для входа</p>
+                </div>
+
+                <button id="closeBtn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        class="lucide lucide-x h-4 w-4">
+                        <path d="M18 6 6 18"></path>
+                        <path d="m6 6 12 12"></path>
+                    </svg>
+                </button>
+
+                <form method="post" class="login-form" id="loginForm">
+                    <div class="username-form form">
+                        <label id="username-label" for="username">Username</label>
+
+                        <div class="username-field">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round"
+                                class="lucide lucide-mail absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground">
+                                <rect width="20" height="16" x="2" y="4" rx="2"></rect>
+                                <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+                            </svg>
+
+                            <input type="username" id="username" class="auth-inputs" placeholder="ie: Altera" />
+                        </div>
+                    </div>
+
+                    <div class="password-form form">
+                        <label id="password-label" for="password">Пароль</label>
+
+                        <div class="password-field">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round"
+                                class="lucide lucide-lock absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground">
+                                <rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                            </svg>
+
+                            <input type="password" id="password" class="auth-inputs" placeholder="******" />
+                        </div>
+                    </div>
+
+                    <div class="auth-error-log" id="auth-error-log">
+
+                    </div>
+
+                    <button type="submit" class="submit-btn" id="submitBtn">
+                        Войти
+                    </button>
+                </form>
+
+                <div class="text-center">
+                    <button type="button" class="text-caption text-primary hover:underline">
+                        Нет аккаунта? Зарегистрироваться
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- UPLOAD MODAL -->
+        <div class="upload-modal" id="upload-modal" aria-hidden="true">
+            <div role="dialog" id="upload-dialog" aria-describedby="radix-:r5:" aria-labelledby="radix-:r4:"
+                data-state="closed"
+                class="fixed left-[50%] top-[50%] z-50 grid  max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg sm:max-w-lg upload-dialog"
+                tabindex="-1">
+                <div class="flex flex-col space-y-1.5 text-center sm:text-left upload-header">
+                    <h2 id="radix-:r4:"
+                        class="text-lg font-semibold leading-none tracking-tight flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                            class="lucide lucide-upload w-5 h-5 text-primary">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" x2="12" y1="3" y2="15"></line>
+                        </svg>
+                        Загрузка товаров
+                    </h2>
+                    <p id="radix-:r5:" class="text-sm text-muted-foreground">Загрузите CSV или Excel файл с товарами
+                    </p>
+                </div>
+
+                <div id="file-selection-container" modal-type="upload">
+                    <div
+                        class="border-2 border-dashed rounded-lg p-8 text-center transition-colors border-muted-foreground/25 hover:border-primary/50 upload-dropzone">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                            class="lucide lucide-file-spreadsheet w-12 h-12 mx-auto mb-4 text-muted-foreground">
+                            <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path>
+                            <path d="M14 2v4a2 2 0 0 0 2 2h4"></path>
+                            <path d="M8 13h2"></path>
+                            <path d="M14 13h2"></path>
+                            <path d="M8 17h2"></path>
+                            <path d="M14 17h2"></path>
+                        </svg>
+                        <p class="text-body text-foreground mb-2">Перетащите файл сюда</p>
+                        <p class="text-caption text-muted-foreground mb-4">или нажмите для выбора</p>
+                        <input type="file" accept=".csv,.xlsx,.xls,.json" class="hidden" id="file-upload">
+                        <label for="file-upload"
+                            class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg]:size-4 [&amp;_svg]:shrink-0 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 cursor-pointer upload-file-button">Выбрать
+                            файл</label>
+                        <p class="text-caption text-muted-foreground upload-file-status" id="uploadFileStatus">Файл не
+                            выбран</p>
+                    </div>
+                    <div class="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2"></div>
+                    <button type="button"
+                        class="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity data-[state=open]:bg-accent data-[state=open]:text-muted-foreground hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none upload-close-btn"
+                        id="uploadCloseBtn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                            class="lucide lucide-x h-4 w-4">
+                            <path d="M18 6 6 18"></path>
+                            <path d="m6 6 12 12"></path>
+                        </svg>
+                        <span class="sr-only">Close</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- CHECK MODAL -->
+        <div class="check-modal" id="check-modal" aria-hidden="true">
+            <div role="dialog" id="check-dialog" aria-describedby="radix-:r8:" aria-labelledby="radix-:r7:"
+                data-state="closed"
+                class="fixed left-[50%] top-[50%] z-50 grid  max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg sm:max-w-lg check-dialog"
+                tabindex="-1">
+                <div class="flex flex-col space-y-1.5 text-center sm:text-left check-header">
+                    <h2 id="radix-:r7:"
+                        class="text-lg font-semibold leading-none tracking-tight flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                            class="lucide lucide-search w-5 h-5 text-primary">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <path d="m21 21-4.3-4.3"></path>
+                        </svg>
+                        Проверка существования
+                    </h2>
+                    <p id="radix-:r8:" class="text-sm text-muted-foreground">Выберите способ проверки товаров</p>
+                </div>
+                <div class="grid grid-cols-2 gap-4 check-options">
+                    <button
+                        class="flex flex-col items-center gap-3 p-6 border-2 border-muted-foreground/25 rounded-lg hover:border-primary hover:bg-primary/5 transition-colors check-option"
+                        id="checkSingleBtn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                            class="lucide lucide-hash w-10 h-10 text-primary">
+                            <line x1="4" x2="20" y1="9" y2="9"></line>
+                            <line x1="4" x2="20" y1="15" y2="15"></line>
+                            <line x1="10" x2="8" y1="3" y2="21"></line>
+                            <line x1="16" x2="14" y1="3" y2="21"></line>
+                        </svg>
+                        <div class="text-center">
+                            <p class="font-medium text-foreground text-big">Один товар</p>
+                            <p class="text-caption text-muted-foreground">Проверить по EAN</p>
+                        </div>
+                    </button>
+                    <button
+                        class="flex flex-col items-center gap-3 p-6 border-2 border-muted-foreground/25 rounded-lg hover:border-primary hover:bg-primary/5 transition-colors check-option"
+                        id="checkMultipleBtn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                            class="lucide lucide-file-spreadsheet w-10 h-10 text-primary">
+                            <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path>
+                            <path d="M14 2v4a2 2 0 0 0 2 2h4"></path>
+                            <path d="M8 13h2"></path>
+                            <path d="M14 13h2"></path>
+                            <path d="M8 17h2"></path>
+                            <path d="M14 17h2"></path>
+                        </svg>
+                        <div class="text-center">
+                            <p class="font-medium text-foreground text-big">Массовая проверка</p>
+                            <p class="text-caption text-muted-foreground">Загрузить файл</p>
+                        </div>
+                    </button>
+                </div>
+                <div class="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2"></div>
+                <button type="button"
+                    class="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity data-[state=open]:bg-accent data-[state=open]:text-muted-foreground hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none check-close-btn"
+                    id="checkCloseBtn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        class="lucide lucide-x h-4 w-4">
+                        <path d="M18 6 6 18"></path>
+                        <path d="m6 6 12 12"></path>
+                    </svg>
+                    <span class="sr-only">Close</span>
+                </button>
+            </div>
+        </div>
+        <!-- SINGLE CHECK MODAL -->
+        <div class="single-check-modal" id="single-check-modal" aria-hidden="true">
+            <div role="dialog" id="single-check-dialog" aria-describedby="radix-:r8:" aria-labelledby="radix-:r7:"
+                data-state="closed"
+                class="fixed left-[50%] top-[50%] z-50 grid  max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg sm:max-w-lg single-check-dialog"
+                tabindex="-1">
+                <div class="flex flex-col space-y-1.5 text-center sm:text-left single-check-header">
+                    <h2 id="radix-:r7:"
+                        class="text-lg font-semibold leading-none tracking-tight flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                            class="lucide lucide-search w-5 h-5 text-primary">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <path d="m21 21-4.3-4.3"></path>
+                        </svg>
+                        Проверка существования
+                    </h2>
+                    <p id="radix-:r8:" class="text-sm text-muted-foreground">Введите EAN товара для проверки</p>
+                </div>
+                <div class="space-y-4 single-check-body">
+                    <div class="space-y-2">
+                        <label class="text-sm font-medium leading-none" for="ean-input">EAN код</label>
+                        <input
+                            class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground md:text-sm font-mono single-ean-input"
+                            id="ean-input" placeholder="Например: 4006381333931" value="">
+                    </div>
+                    <div class="flex gap-2 single-check-actions">
+                        <button
+                            class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 flex-1 single-back-btn"
+                            id="singleBackBtn">Назад</button>
+                        <button
+                            class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors h-10 px-4 py-2 flex-1 single-primary-btn"
+                            disabled="">Проверить</button>
+                    </div>
+                </div>
+                <div class="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2"></div>
+                <button type="button"
+                    class="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none single-close-btn"
+                    id="singleCloseBtn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        class="lucide lucide-x h-4 w-4">
+                        <path d="M18 6 6 18"></path>
+                        <path d="m6 6 12 12"></path>
+                    </svg>
+                    <span class="sr-only">Close</span>
+                </button>
+            </div>
+        </div>
+        <!-- MULTIPLE CHECK MODAL -->
+        <div class="multiple-check-modal" id="multiple-check-modal" aria-hidden="true">
+            <div role="dialog" id="multiple-check-dialog" aria-describedby="radix-:r8:" aria-labelledby="radix-:r7:"
+                data-state="closed"
+                class="fixed left-[50%] top-[50%] z-50 grid max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg sm:max-w-lg multiple-check-dialog"
+                tabindex="-1">
+                <div class="flex flex-col space-y-1.5 text-center sm:text-left multiple-check-header">
+                    <h2 id="radix-:r7:"
+                        class="text-lg font-semibold leading-none tracking-tight flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                            class="lucide lucide-search w-5 h-5 text-primary">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <path d="m21 21-4.3-4.3"></path>
+                        </svg>
+                        Проверка существования
+                    </h2>
+                    <p id="radix-:r8:" class="text-sm text-muted-foreground">Загрузите список EAN для проверки</p>
+                </div>
+                <div class="space-y-4 multiple-check-body">
+                    <div id="multiple-file-selection-container" modal-type="check">
+                        <div
+                            class="border-2 border-dashed rounded-lg p-8 text-center transition-colors border-muted-foreground/25 hover:border-primary/50 multiple-check-dropzone">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round"
+                                class="lucide lucide-file-spreadsheet w-12 h-12 mx-auto mb-4 text-muted-foreground">
+                                <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path>
+                                <path d="M14 2v4a2 2 0 0 0 2 2h4"></path>
+                                <path d="M8 13h2"></path>
+                                <path d="M14 13h2"></path>
+                                <path d="M8 17h2"></path>
+                                <path d="M14 17h2"></path>
+                            </svg>
+                            <p class="text-body text-foreground mb-2">Перетащите файл с EAN</p>
+                            <p class="text-caption text-muted-foreground mb-4">CSV или Excel с колонкой EAN</p>
+                            <input type="file" accept=".csv,.xlsx,.xls,.json" class="hidden" id="check-file-upload">
+                            <label for="check-file-upload"
+                                class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg]:size-4 [&amp;_svg]:shrink-0 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 cursor-pointer upload-file-button">Выбрать
+                                файл</label>
+                            <p class="text-caption text-muted-foreground multiple-file-status" id="multipleFileStatus">
+                                Файл
+                                не выбран</p>
+                        </div>
+                    </div>
+                    <button
+                        class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 multiple-back-btn"
+                        id="multiBackBtn">
+                        Назад
+                    </button>
+                </div>
+                <div class="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2"></div>
+                <button type="button"
+                    class="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none multiple-close-btn"
+                    id="multiCloseBtn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        class="lucide lucide-x h-4 w-4">
+                        <path d="M18 6 6 18"></path>
+                        <path d="m6 6 12 12"></path>
+                    </svg>
+                    <span class="sr-only">Close</span>
+                </button>
+            </div>
+        </div>
+        <!-- DELETE MODAL -->
+        <div class="delete-modal" id="delete-modal" aria-hidden="true">
+            <div role="dialog" id="delete-dialog" aria-describedby="radix-:rb:" aria-labelledby="radix-:ra:"
+                data-state="closed"
+                class="fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg sm:max-w-lg delete-dialog"
+                tabindex="-1">
+                <div class="flex flex-col space-y-1.5 text-center sm:text-left delete-header">
+                    <h2 id="radix-:ra:"
+                        class="text-lg font-semibold leading-none tracking-tight flex items-center gap-2 text-destructive">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                            class="lucide lucide-trash2 w-5 h-5">
+                            <path d="M3 6h18"></path>
+                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                            <line x1="10" x2="10" y1="11" y2="17"></line>
+                            <line x1="14" x2="14" y1="11" y2="17"></line>
+                        </svg>
+                        Удаление товаров
+                    </h2>
+                    <p id="radix-:rb:" class="text-sm text-muted-foreground">Выберите товары для удаления</p>
+                </div>
+                <div class="space-y-4 delete-body">
+                    <div id="delete-file-selection-container" modal-type="delete">
+                        <div
+                            class="border-2 border-dashed rounded-lg p-6 text-center transition-colors border-muted-foreground/25 hover:border-destructive/50 delete-dropzone">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round"
+                                class="lucide lucide-file-spreadsheet w-10 h-10 mx-auto mb-3 text-muted-foreground">
+                                <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path>
+                                <path d="M14 2v4a2 2 0 0 0 2 2h4"></path>
+                                <path d="M8 13h2"></path>
+                                <path d="M14 13h2"></path>
+                                <path d="M8 17h2"></path>
+                                <path d="M14 17h2"></path>
+                            </svg>
+                            <p class="text-body text-foreground mb-1">Перетащите файл с EAN</p>
+                            <p class="text-caption text-muted-foreground mb-3">для массового удаления</p>
+                            <input type="file" accept=".csv,.xlsx,.xls,.json" class="hidden" id="delete-file-upload">
+                            <label for="delete-file-upload"
+                                class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg]:size-4 [&amp;_svg]:shrink-0 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 cursor-pointer upload-file-button">Выбрать
+                                файл</label>
+                            <p class="text-caption text-muted-foreground delete-file-status" id="deleteFileStatus">Файл
+                                не
+                                выбран</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2"></div>
+                <button type="button"
+                    class="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none delete-close-btn"
+                    id="deleteCloseBtn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        class="lucide lucide-x h-4 w-4">
+                        <path d="M18 6 6 18"></path>
+                        <path d="m6 6 12 12"></path>
+                    </svg>
+                    <span class="sr-only">Close</span>
+                </button>
+            </div>
+        </div>
+        <main class="main">
+            <div class="p-8">
+                <div class="d-m">
+                    <div class="">
+                        <h1 class="d-header">
+                            Товары
+                        </h1>
+                        <p class="d-text">
+                            Управление и обработка товаров
+                        </p>
+                    </div>
+                    <div class="d-bs">
+                        <button class="u-b b" id="uploadBtn">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round" class="lucide lucide-upload w-4 h-4 mr-2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="17 8 12 3 7 8"></polyline>
+                                <line x1="12" x2="12" y1="3" y2="15"></line>
+                            </svg>
+                            Загрузить
+                        </button>
+                        <button class="c-b b" id="checkBtn">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round" class="lucide lucide-search w-4 h-4 mr-2">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <path d="m21 21-4.3-4.3"></path>
+                            </svg>
+                            Проверить
+                        </button>
+                        <button class="d-b b" id="deleteBtn">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round" class="lucide lucide-trash2 w-4 h-4 mr-2">
+                                <path d="M3 6h18"></path>
+                                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                                <line x1="10" x2="10" y1="11" y2="17"></line>
+                                <line x1="14" x2="14" y1="11" y2="17"></line>
+                            </svg>
+                            Удалить
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script type="module" src="js/main.js"></script>
+</body>
+
+</html>
