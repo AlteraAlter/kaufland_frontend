@@ -1,7 +1,8 @@
+import { BASE_URL } from "../../core/config.js";
+
 export function initAuthModal() {
     const ACCESS_KEY = "jwt_access";
     const REFRESH_KEY = "jwt_refresh";
-    const BACKEND_URL = "http://192.168.0.142:8050";
 
     const container = document.getElementsByClassName("auth-buttons")[0]
     const modal = document.getElementById("login-modal");
@@ -95,7 +96,7 @@ export function initAuthModal() {
 
         const username = document.getElementById("username").value;
         const password = document.getElementById("password").value;
-        const resp = await fetch(`${BACKEND_URL}/api/token/`, {
+        const resp = await fetch(`${BASE_URL}/api/token/`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
