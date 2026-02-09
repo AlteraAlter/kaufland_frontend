@@ -139,7 +139,7 @@
                         </svg>
                         <p class="text-body text-foreground mb-2">Перетащите файл сюда</p>
                         <p class="text-caption text-muted-foreground mb-4">или нажмите для выбора</p>
-                        <input type="file" accept=".csv,.xlsx,.xls,.json" class="hidden" id="file-upload">
+                        <input type="file" accept=".json" class="hidden" id="file-upload">
                         <label for="file-upload"
                             class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg]:size-4 [&amp;_svg]:shrink-0 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 cursor-pointer upload-file-button">Выбрать
                             файл</label>
@@ -262,7 +262,7 @@
                             id="singleBackBtn">Назад</button>
                         <button
                             class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors h-10 px-4 py-2 flex-1 single-primary-btn"
-                            disabled="">Проверить</button>
+                            id="singleCheckSubmit" disabled="">Проверить</button>
                     </div>
                 </div>
                 <div class="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2"></div>
@@ -453,6 +453,22 @@
                     </div>
                 </div>
                 <div id="cardsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                </div>
+                <div class="bg-card rounded-lg border p-12 text-center">
+                    <div class="text-muted-foreground" id="task-status-container">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                            class="lucide lucide-package w-12 h-12 mx-auto mb-4 opacity-50">
+                            <path
+                                d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z">
+                            </path>
+                            <path d="M12 22V12"></path>
+                            <path d="m3.3 7 7.703 4.734a2 2 0 0 0 1.994 0L20.7 7"></path>
+                            <path d="m7.5 4.27 9 5.15"></path>
+                        </svg>
+                        <h3 class="text-h3 text-foreground mb-2">Нет активной задачи</h3>
+                        <p class="text-body">Загрузите файл или проверьте товары, чтобы начать обработку</p>
+                    </div>
                 </div>
             </div>
         </main>

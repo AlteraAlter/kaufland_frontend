@@ -1,6 +1,7 @@
-import { sendFileRequest, getOperationConfig } from "../../services/api.js";
-import { initProgressSocket } from "../ws/uploadProgressSocket.js";
-import { mapOperationLabel, parseTaskStatus, showTaskStatus } from "./taskStatus.js";
+import { sendFileRequest, getOperationConfig } from "../services/api.js";
+import { initUploadProgressSocket } from "../modules/ws/uploadProgressSocket.js";
+import { mapOperationLabel, showTaskStatus, handleBackendStatusMessage } from "./taskStatus.js";
+import { setMetricCardValue } from "./cards.js";
 
 export function initFileSelect({
     fileSelectionContainer,
@@ -9,6 +10,8 @@ export function initFileSelect({
     readyText = "Готов к загрузке",
     backText = "Отмена",
     confirmText = "Подтвердить",
+    jsonOnly = false,
+    jsonCountCardKey = null,
     onSuccess,
 }) {
     if (!fileSelectionContainer) return;
@@ -83,17 +86,52 @@ export function initFileSelect({
         selectedFile = null;
         fileStatus.textContent = "Файл не выбран";
 
-        fileInput.addEventListener("change", () => {
+        fileInput.addEventListener("change", async () => {
             const file = fileInput.files?.[0] || null;
             const fileName = file?.name;
             if (!fileName || !file) {
                 fileStatus.textContent = "Файл не выбран";
                 selectedFile = null;
+                if (jsonCountCardKey) setMetricCardValue(jsonCountCardKey, 0);
                 return;
+            }
+
+            if (jsonOnly) {
+                const lowerName = fileName.toLowerCase();
+                const isJson = file.type === "application/json" || lowerName.endsWith(".json");
+                if (!isJson) {
+                    fileStatus.textContent = "Допускаются только JSON файлы";
+                    fileInput.value = "";
+                    selectedFile = null;
+                    if (jsonCountCardKey) setMetricCardValue(jsonCountCardKey, 0);
+                    return;
+                }
             }
 
             fileStatus.textContent = `Выбран файл: ${fileName}`;
             selectedFile = file;
+
+            if (jsonOnly && jsonCountCardKey) {
+                try {
+                    const text = await file.text();
+                    const data = JSON.parse(text);
+                    if (!Array.isArray(data)) {
+                        fileStatus.textContent = "Неверный формат JSON: ожидается массив";
+                        selectedFile = null;
+                        fileInput.value = "";
+                        setMetricCardValue(jsonCountCardKey, 0);
+                        return;
+                    }
+                    setMetricCardValue(jsonCountCardKey, data.length);
+                } catch (error) {
+                    console.error(error);
+                    fileStatus.textContent = "Ошибка чтения JSON файла";
+                    selectedFile = null;
+                    fileInput.value = "";
+                    setMetricCardValue(jsonCountCardKey, 0);
+                    return;
+                }
+            }
             renderConfirm(fileName);
         });
     };
@@ -101,6 +139,7 @@ export function initFileSelect({
     const restoreInitial = () => {
         fileSelectionContainer.innerHTML = originalHTML;
         if (cancelButton) cancelButton.style.display = "block";
+        if (jsonCountCardKey) setMetricCardValue(jsonCountCardKey, 0);
         bindFileInput();
     };
 
@@ -141,14 +180,14 @@ async function sendRequest({
         onSuccess({ operation });
     }
 
-    let progressSocket = initProgressSocket({
-        onMessage: (event) => {
-            const data = parseTaskStatus(event.data);
-            console.log(data);
-            if (data) {
-                showTaskStatus(data);
-            }
-            if (data?.done) {
+    const jobId = crypto.randomUUID();
+    let progressSocket = initUploadProgressSocket({
+        jobId,
+        onMessage: async (event) => {
+            console.log(event.data);
+            const data = await normalizeWsData(event.data);
+            const result = handleBackendStatusMessage(data);
+            if (result?.done) {
                 progressSocket?.close();
             }
         },
@@ -165,6 +204,7 @@ async function sendRequest({
             operation,
             file,
             token: localStorage.getItem("jwt_access"),
+            jobId,
         });
 
         if (!response?.ok) {
@@ -187,4 +227,15 @@ async function sendRequest({
         if (confirmButton) confirmButton.disabled = false;
         if (backButton) backButton.disabled = false;
     }
+}
+
+async function normalizeWsData(data) {
+    console.log(data);
+    if (data instanceof Blob) {
+        return await data.text();
+    }
+    if (data instanceof ArrayBuffer) {
+        return new TextDecoder().decode(data);
+    }
+    return data;
 }

@@ -1,15 +1,16 @@
+import { qs, on } from "../../core/dom.js";
 import { BASE_URL } from "../../core/config.js";
 
 export function initAuthModal() {
     const ACCESS_KEY = "jwt_access";
     const REFRESH_KEY = "jwt_refresh";
 
-    const container = document.getElementsByClassName("auth-buttons")[0]
-    const modal = document.getElementById("login-modal");
-    const openBtn = document.getElementById("loginBtn");
-    const closeBtn = document.getElementById("closeBtn");
-    const loginBtn = document.getElementById("submitBtn");
-    const errorDiv = document.getElementById("auth-error-log")
+    const container = document.getElementsByClassName("auth-buttons")[0];
+    const modal = qs("#login-modal");
+    const openBtn = qs("#loginBtn");
+    const closeBtn = qs("#closeBtn");
+    const loginBtn = qs("#submitBtn");
+    const errorDiv = qs("#auth-error-log");
 
     const logoutBtnHTML = `<button class="logout-button" id="logoutBtn">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
@@ -20,7 +21,7 @@ export function initAuthModal() {
                                     <line x1="15" x2="3" y1="12" y2="12"></line>
                                 </svg>
                                 Выйти
-                            </button>`
+                            </button>`;
 
     const statusHTML = `<div class="status-bar">
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
@@ -30,35 +31,31 @@ export function initAuthModal() {
                                     <circle cx="12" cy="7" r="4"></circle>
                             </svg>
                             <span class="text-caption font-medium">В системе</span>
-                        </div>`
+                        </div>`;
 
-    const setTokens = ({ access, refresh, _ }) => {
+    const setTokens = ({ access, refresh }) => {
         localStorage.setItem(ACCESS_KEY, access);
         if (refresh) localStorage.setItem(REFRESH_KEY, refresh);
-    }
+    };
 
-    const isLoggedIn = () => {
-        return localStorage.getItem(ACCESS_KEY);
-    }
+    const isLoggedIn = () => localStorage.getItem(ACCESS_KEY);
 
     const clearTokens = () => {
         localStorage.clear();
-    }
+    };
 
     const mapErrorText = (errText) => {
-        console.log(Object.keys(errText));
         switch (Object.keys(errText)[0]) {
             case "username":
-                return "Username must be filled"
+                return "Username must be filled";
             case "detail":
-                return "Error credentials"
+                return "Error credentials";
             case "password":
-                return "Password must be filled"
-
+                return "Password must be filled";
             default:
-                return Object.keys(errText)[0]
+                return Object.keys(errText)[0];
         }
-    }
+    };
 
     if (!modal || !openBtn || !closeBtn) return;
 
@@ -68,54 +65,50 @@ export function initAuthModal() {
         container.insertAdjacentHTML("afterbegin", statusHTML);
     }
 
-    openBtn.addEventListener("click", () => {
+    on(openBtn, "click", () => {
         modal.classList.add("active");
     });
 
-    closeBtn.addEventListener("click", () => {
+    on(closeBtn, "click", () => {
         modal.classList.remove("active");
     });
 
-    modal.addEventListener("click", (e) => {
-        if (e.target === modal) {
+    on(modal, "click", (event) => {
+        if (event.target === modal) {
             modal.classList.remove("active");
         }
     });
 
-    container.addEventListener("click", (e) => {
-        if (e.target.closest("#logoutBtn")) {
+    on(container, "click", (event) => {
+        if (event.target.closest("#logoutBtn")) {
             clearTokens();
             location.reload();
         }
     });
 
+    on(loginBtn, "click", async (event) => {
+        event.preventDefault();
 
-
-    loginBtn.addEventListener("click", async (e) => {
-        e.preventDefault();
-
-        const username = document.getElementById("username").value;
-        const password = document.getElementById("password").value;
+        const username = qs("#username")?.value;
+        const password = qs("#password")?.value;
         const resp = await fetch(`${BASE_URL}/api/token/`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                username: username,
-                password: password
+                username,
+                password,
             }),
         });
+
         if (!resp.ok) {
             const errText = await resp.json();
-            console.log(typeof errText);
             const text = mapErrorText(errText);
-            console.log(text);
-            errorDiv.classList.add("active");
-
-            errorDiv.innerHTML = `<p class="error-text">${text}</p>`;
+            errorDiv?.classList.add("active");
+            if (errorDiv) errorDiv.innerHTML = `<p class="error-text">${text}</p>`;
             return;
         }
+
         const data = await resp.json();
-        console.log(data);
         setTokens(data);
         location.reload();
     });

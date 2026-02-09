@@ -1,8 +1,9 @@
 import { WS_BASE_URL } from "../core/config.js";
 
-export function createWebSocket(path, handlers = {}) {
+export function createWebSocket(path, handlers = {}, options = {}) {
     const { onOpen, onMessage, onClose, onError } = handlers;
-    const socket = new WebSocket(`${WS_BASE_URL}${path}`);
+    const { params, suffix } = options;
+    const socket = new WebSocket(buildWsUrl(path, suffix));
 
     socket.onopen = (event) => {
         if (typeof onOpen === "function") onOpen(event, socket);
@@ -21,4 +22,19 @@ export function createWebSocket(path, handlers = {}) {
     };
 
     return socket;
+}
+
+function buildWsUrl(path, suffix) {
+    const isFullUrl = /^wss?:\/\//i.test(path);
+    const base = WS_BASE_URL.endsWith("/") ? WS_BASE_URL.slice(0, -1) : WS_BASE_URL;
+    const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+    let url = isFullUrl ? path : `${base}${normalizedPath}`;
+
+    if (suffix) {
+        const cleanSuffix = String(suffix).replace(/^\/+|\/+$/g, "");
+        url = `${url.replace(/\/+$/g, "")}/?job_id=${cleanSuffix}`;
+    } else {
+        url = `${url.replace(/\/+$/g, "")}/`;
+    }
+    return url;
 }

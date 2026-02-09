@@ -1,42 +1,25 @@
-import { initFileSelect } from "../components/modalComponents.js";
+import { qs, on } from "../../core/dom.js";
+import { openModal, closeModal, bindOverlayClose, bindEscapeClose } from "../../ui/modal.js";
+import { initFileSelect } from "../../ui/fileSelect.js";
 
 export function initDeleteModal() {
-    const modal = document.getElementById("delete-modal");
-    const dialog = document.getElementById("delete-dialog");
-    const openBtn = document.getElementById("deleteBtn");
-    const closeBtn = document.getElementById("deleteCloseBtn");
-    const fileSelectionContainer = document.getElementById("delete-file-selection-container");
+    const modal = qs("#delete-modal");
+    const dialog = qs("#delete-dialog");
+    const openBtn = qs("#deleteBtn");
+    const closeBtn = qs("#deleteCloseBtn");
+    const fileSelectionContainer = qs("#delete-file-selection-container");
 
     if (!modal || !dialog || !openBtn || !closeBtn) return;
 
-    const openModal = () => {
-        modal.classList.add("active");
-        modal.setAttribute("aria-hidden", "false");
-        dialog.setAttribute("data-state", "open");
-        dialog.focus();
-        document.body.style.overflow = "hidden";
-    };
+    const open = () => openModal({ modal, dialog });
+    const close = () => closeModal({ modal, dialog });
 
-    const closeModal = () => {
-        modal.classList.remove("active");
-        modal.setAttribute("aria-hidden", "true");
-        dialog.setAttribute("data-state", "closed");
-        document.body.style.overflow = "";
-    };
+    on(openBtn, "click", open);
+    on(closeBtn, "click", close);
 
-    openBtn.addEventListener("click", openModal);
-    closeBtn.addEventListener("click", closeModal);
-
-    modal.addEventListener("click", (event) => {
-        if (event.target === modal) {
-            closeModal();
-        }
-    });
-
-    document.addEventListener("keydown", (event) => {
-        if (event.key === "Escape" && modal.classList.contains("active")) {
-            closeModal();
-        }
+    bindOverlayClose(modal, close);
+    bindEscapeClose(() => {
+        if (modal.classList.contains("active")) close();
     });
 
     if (fileSelectionContainer) {
@@ -45,6 +28,7 @@ export function initDeleteModal() {
             fileInputSelector: "#delete-file-upload",
             fileStatusSelector: "#deleteFileStatus",
             readyText: "Готов к удалению",
+            onSuccess: () => close(),
         });
     }
 }

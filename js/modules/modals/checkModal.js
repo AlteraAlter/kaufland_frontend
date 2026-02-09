@@ -1,117 +1,101 @@
-import { initFileSelect } from "../components/modalComponents.js";
+import { qs, on } from "../../core/dom.js";
+import { openModal, closeModal, bindOverlayClose, bindEscapeClose } from "../../ui/modal.js";
+import { initFileSelect } from "../../ui/fileSelect.js";
+import { sendEanRequest } from "../../services/api.js";
+import { mapOperationLabel, showTaskStatus } from "../../ui/taskStatus.js";
 
 export function initCheckModal() {
-    const modal = document.getElementById("check-modal");
-    const dialog = document.getElementById("check-dialog");
-    const openBtn = document.getElementById("checkBtn");
-    const closeBtn = document.getElementById("checkCloseBtn");
+    const modal = qs("#check-modal");
+    const dialog = qs("#check-dialog");
+    const openBtn = qs("#checkBtn");
+    const closeBtn = qs("#checkCloseBtn");
 
-    const singleModal = document.getElementById("single-check-modal");
-    const singleDialog = document.getElementById("single-check-dialog");
-    const singleCloseBtn = document.getElementById("singleCloseBtn");
-    const singleBackBtn = document.getElementById("singleBackBtn");
+    const singleModal = qs("#single-check-modal");
+    const singleDialog = qs("#single-check-dialog");
+    const singleCloseBtn = qs("#singleCloseBtn");
+    const singleBackBtn = qs("#singleBackBtn");
+    const singleInput = qs("#ean-input");
+    const singleSubmit = qs("#singleCheckSubmit");
 
-    const multipleModal = document.getElementById("multiple-check-modal");
-    const multipleDialog = document.getElementById("multiple-check-dialog");
-    const multipleCloseBtn = document.getElementById("multiCloseBtn");
-    const multipleBackBtn = document.getElementById("multiBackBtn");
-    const multipleFileContainer = document.getElementById("multiple-file-selection-container");
+    const multipleModal = qs("#multiple-check-modal");
+    const multipleDialog = qs("#multiple-check-dialog");
+    const multipleCloseBtn = qs("#multiCloseBtn");
+    const multipleBackBtn = qs("#multiBackBtn");
+    const multipleFileContainer = qs("#multiple-file-selection-container");
 
-    const singleBtn = document.getElementById("checkSingleBtn");
-    const multipleBtn = document.getElementById("checkMultipleBtn");
+    const singleBtn = qs("#checkSingleBtn");
+    const multipleBtn = qs("#checkMultipleBtn");
 
     if (!modal || !dialog || !openBtn || !closeBtn) return;
 
-    const openModal = (targetModal, targetDialog) => {
-        targetModal.classList.add("active");
-        targetModal.setAttribute("aria-hidden", "false");
-        targetDialog.setAttribute("data-state", "open");
-        targetDialog.focus();
-        document.body.style.overflow = "hidden";
-    };
+    const isAnyActive = () =>
+        [modal, singleModal, multipleModal].some((item) => item?.classList.contains("active"));
 
-    const closeModal = (targetModal, targetDialog) => {
-        targetModal.classList.remove("active");
-        targetModal.setAttribute("aria-hidden", "true");
-        targetDialog.setAttribute("data-state", "closed");
-        if (
-            !modal.classList.contains("active") &&
-            !singleModal.classList.contains("active") &&
-            !multipleModal.classList.contains("active")
-        ) {
-            document.body.style.overflow = "";
-        }
-    };
+    const openBase = () => openModal({ modal, dialog });
+    const closeBase = () =>
+        closeModal({
+            modal,
+            dialog,
+            unlockCondition: () => !isAnyActive(),
+        });
 
-    openBtn.addEventListener("click", () => openModal(modal, dialog));
-    closeBtn.addEventListener("click", () => closeModal(modal, dialog));
+    const openSingle = () => openModal({ modal: singleModal, dialog: singleDialog });
+    const closeSingle = () =>
+        closeModal({
+            modal: singleModal,
+            dialog: singleDialog,
+            unlockCondition: () => !isAnyActive(),
+        });
 
-    modal.addEventListener("click", (event) => {
-        if (event.target === modal) {
-            closeModal(modal, dialog);
-        }
+    const openMultiple = () => openModal({ modal: multipleModal, dialog: multipleDialog });
+    const closeMultiple = () =>
+        closeModal({
+            modal: multipleModal,
+            dialog: multipleDialog,
+            unlockCondition: () => !isAnyActive(),
+        });
+
+    on(openBtn, "click", openBase);
+    on(closeBtn, "click", closeBase);
+
+    bindOverlayClose(modal, closeBase);
+    bindOverlayClose(singleModal, closeSingle);
+    bindOverlayClose(multipleModal, closeMultiple);
+
+    on(singleBtn, "click", () => {
+        closeBase();
+        openSingle();
     });
 
-    if (singleBtn && singleModal && singleDialog) {
-        singleBtn.addEventListener("click", () => {
-            closeModal(modal, dialog);
-            openModal(singleModal, singleDialog);
-        });
-    }
-
-    if (multipleBtn && multipleModal && multipleDialog) {
-        multipleBtn.addEventListener("click", () => {
-            closeModal(modal, dialog);
-            openModal(multipleModal, multipleDialog);
-        });
-    }
-
-    if (singleCloseBtn && singleModal && singleDialog) {
-        singleCloseBtn.addEventListener("click", () => closeModal(singleModal, singleDialog));
-    }
-
-    if (multipleCloseBtn && multipleModal && multipleDialog) {
-        multipleCloseBtn.addEventListener("click", () => closeModal(multipleModal, multipleDialog));
-    }
-
-    if (singleBackBtn && singleModal && singleDialog) {
-        singleBackBtn.addEventListener("click", () => {
-            closeModal(singleModal, singleDialog);
-            openModal(modal, dialog);
-        });
-    }
-
-    if (multipleBackBtn && multipleModal && multipleDialog) {
-        multipleBackBtn.addEventListener("click", () => {
-            closeModal(multipleModal, multipleDialog);
-            openModal(modal, dialog);
-        });
-    }
-
-    singleModal?.addEventListener("click", (event) => {
-        if (event.target === singleModal) {
-            closeModal(singleModal, singleDialog);
-        }
+    on(multipleBtn, "click", () => {
+        closeBase();
+        openMultiple();
     });
 
-    multipleModal?.addEventListener("click", (event) => {
-        if (event.target === multipleModal) {
-            closeModal(multipleModal, multipleDialog);
-        }
+    on(singleCloseBtn, "click", closeSingle);
+    on(multipleCloseBtn, "click", closeMultiple);
+
+    on(singleBackBtn, "click", () => {
+        closeSingle();
+        openBase();
     });
 
-    document.addEventListener("keydown", (event) => {
-        if (event.key !== "Escape") return;
+    on(multipleBackBtn, "click", () => {
+        closeMultiple();
+        openBase();
+    });
+
+    bindEscapeClose(() => {
         if (singleModal?.classList.contains("active")) {
-            closeModal(singleModal, singleDialog);
+            closeSingle();
             return;
         }
         if (multipleModal?.classList.contains("active")) {
-            closeModal(multipleModal, multipleDialog);
+            closeMultiple();
             return;
         }
         if (modal.classList.contains("active")) {
-            closeModal(modal, dialog);
+            closeBase();
         }
     });
 
@@ -120,6 +104,57 @@ export function initCheckModal() {
             fileSelectionContainer: multipleFileContainer,
             fileInputSelector: "#check-file-upload",
             fileStatusSelector: "#multipleFileStatus",
+            onSuccess: () => closeMultiple(),
+        });
+    }
+
+    if (singleInput && singleSubmit) {
+        const updateSingleState = () => {
+            const value = singleInput.value.trim();
+            const normalized = value.replace(/\s+/g, "");
+            const isValid = normalized.length > 0 && /^\d+$/.test(normalized);
+            singleSubmit.disabled = !isValid;
+        };
+
+        singleInput.addEventListener("input", updateSingleState);
+        updateSingleState();
+
+        singleSubmit.addEventListener("click", async () => {
+            const value = singleInput.value.trim();
+            const normalized = value.replace(/\s+/g, "");
+            if (!normalized || !/^\d+$/.test(normalized)) {
+                singleSubmit.disabled = true;
+                return;
+            }
+
+            singleSubmit.disabled = true;
+            showTaskStatus({
+                task: mapOperationLabel("check"),
+                status: `Проверка EAN ${normalized}`,
+            });
+
+            try {
+                const response = await sendEanRequest({
+                    ean: normalized,
+                    token: localStorage.getItem("jwt_access"),
+                });
+                if (!response?.ok) {
+                    const code = response ? response.status : "unknown";
+                    throw new Error(`Request failed with status ${code}`);
+                }
+                showTaskStatus({
+                    task: mapOperationLabel("check"),
+                    status: `EAN ${normalized} проверен`,
+                });
+            } catch (error) {
+                console.error(error);
+                showTaskStatus({
+                    task: mapOperationLabel("check"),
+                    status: `Ошибка проверки EAN ${normalized}`,
+                });
+            } finally {
+                updateSingleState();
+            }
         });
     }
 }
