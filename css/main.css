@@ -936,6 +936,14 @@ a {
     line-height: 1.4;
 }
 
+.text-success {
+    color: hsl(var(--success));
+}
+
+.text-warning {
+    color: hsl(var(--warning));
+}
+
 .text-primary {
     color: hsl(var(--primary));
 }
@@ -946,6 +954,10 @@ a {
 
 .opacity-50 {
     opacity: 0.5;
+}
+
+.w-4 {
+    width: 1rem;
 }
 
 .w-10 {
@@ -1183,4 +1195,59 @@ a {
     --tw-shadow: 0 4px 6px -1px rgb(0 0 0 / .1), 0 2px 4px -2px rgb(0 0 0 / .1);
     --tw-shadow-colored: 0 4px 6px -1px var(--tw-shadow-color), 0 2px 4px -2px var(--tw-shadow-color);
     box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+}
+
+.rounded-full {
+    border-radius: 9999px;
+}
+
+.progress-spinner {
+    width: 12px;
+    height: 12px;
+    border: 2px solid rgba(255, 255, 255, 0.35);
+    border-top-color: hsl(var(--primary));
+    border-radius: 9999px;
+    animation: progress-spin 0.8s linear infinite;
+    pointer-events: none;
+}
+
+.progress-spinner.is-paused {
+    animation-play-state: paused;
+    opacity: 0.5;
+}
+
+@keyframes progress-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.overflow-hidden {
+    overflow: hidden;
+}
+
+.h-3 {
+    height: 0.75rem;
+}
+
+.relative {
+    position: relative;
+}
+
+.transition-all {
+    transition-property: all;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+}
+
+.bg-primary {
+    background-color: hsl(var(--primary));
+}
+
+.h-full {
+    height: 100%;
+}
+
+#status-taks-container {
+    display: none;
 }

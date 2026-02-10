@@ -1,27 +1,30 @@
 import { setMetricCardValue, setMetricCardText } from "./cards.js";
+import {
+    initProgressBarStatus,
+    setProgressBarProgress,
+    setProgressBarRunning,
+    setProgressBarStatus,
+} from "./progressBarStatus.js";
+import { qs } from "../core/dom.js"
 
-export function showTaskStatus({ task, status, message, done } = {}) {
-    const container = getTaskStatusContainer();
-    if (!container) return;
+export function showTaskStatus({ hasTask, message } = {}) {
+    const noTaskContainer = qs("#no-task-container");
+    const statusTaskContainer = qs("#status-taks-container");
 
-    if (done === true) {
-        renderNoTasks(container);
-        return;
+    if (hasTask) {
+        statusTaskContainer.style.display = "block";
+        noTaskContainer.style.display = "none";
+        initProgressBarStatus({ success: 0, error: 0, queue: 0 });
     }
-
-    if (!task && !status && !message) {
-        renderNoTasks(container);
+    else {
         return;
+        noTaskContainer.style.display = "block";
+        statusTaskContainer.style.display = "none";
     }
-
-    const taskLabel = task || "Задача";
-    const statusText = status || message || "Выполняется";
-    renderActiveTask(container, taskLabel, statusText);
 }
 
 export function handleBackendStatusMessage(raw) {
     const parsed = parseSocketPayload(raw);
-    console.log(`Parsed`, parsed);
     if (!parsed) return { done: false };
 
     const { event, payload } = normalizeEvent(parsed);
@@ -36,16 +39,16 @@ export function handleBackendStatusMessage(raw) {
                 setMetricCardValue("remaining", total);
                 setMetricCardValue("errors", 0);
             }
-            setMetricCardText(
-                "totalProducts",
-                `Запущено${payload.controller ? ` (${payload.controller})` : ""}`
-            );
-            setMetricCardText("success", "Обработано");
-            setMetricCardText("remaining", "В обработке");
-            setMetricCardText("errors", "Ошибок пока нет");
+            setProgressBarStatus({
+                success: 0,
+                error: 0,
+                queue: Number.isFinite(total) ? total : undefined,
+            });
+            if (Number.isFinite(total)) {
+                setProgressBarProgress({ processed: 0, total });
+            }
             showTaskStatus({
-                task: "Загрузка",
-                status: `Задача запущена${Number.isFinite(total) ? `: ${total} товаров` : ""}`,
+                hasTask: true
             });
             return { done: false };
         }
@@ -54,21 +57,25 @@ export function handleBackendStatusMessage(raw) {
             const processed = toNumber(payload.processed);
             const success = toNumber(payload.success);
             const error = toNumber(payload.error);
+            let remaining = null;
             if (Number.isFinite(total)) setMetricCardValue("totalProducts", total);
             if (Number.isFinite(success)) setMetricCardValue("success", success);
             if (Number.isFinite(error)) setMetricCardValue("errors", error);
             if (Number.isFinite(total) && Number.isFinite(processed)) {
-                const remaining = Math.max(0, total - processed);
+                remaining = Math.max(0, total - processed);
                 setMetricCardValue("remaining", remaining);
             }
-            if (Number.isFinite(processed) && Number.isFinite(total)) {
-                setMetricCardText("totalProducts", `Прогресс ${processed}/${total}`);
+            setProgressBarStatus({
+                success,
+                error,
+                queue: Number.isFinite(remaining) ? remaining : undefined,
+            });
+            if (Number.isFinite(total) && Number.isFinite(processed)) {
+                setProgressBarProgress({ processed, total });
             }
-            const eanText = payload.ean ? `EAN ${payload.ean}` : "Обработка";
-            setMetricCardText("remaining", `Последний: ${eanText}`);
+
             showTaskStatus({
-                task: "Обработка",
-                status: `Прогресс ${processed || 0}/${total || "?"}${eanText ? ` (${eanText})` : ""}`,
+                hasTask: true,
             });
             return { done: false };
         }
@@ -77,28 +84,32 @@ export function handleBackendStatusMessage(raw) {
             const processed = toNumber(payload.processed);
             const success = toNumber(payload.success);
             const error = toNumber(payload.error);
+            let remaining = null;
             if (Number.isFinite(total)) setMetricCardValue("totalProducts", total);
             if (Number.isFinite(success)) setMetricCardValue("success", success);
             if (Number.isFinite(error)) setMetricCardValue("errors", error);
             if (Number.isFinite(total) && Number.isFinite(processed)) {
-                const remaining = Math.max(0, total - processed);
+                remaining = Math.max(0, total - processed);
                 setMetricCardValue("remaining", remaining);
             }
-            setMetricCardText(
-                "totalProducts",
-                `Статус: ${payload.status || "completed"}`
-            );
-            setMetricCardText("remaining", "Обработка завершена");
-            showTaskStatus({ done: true });
+            setProgressBarStatus({
+                success,
+                error,
+                queue: Number.isFinite(remaining) ? remaining : 0,
+            });
+            if (Number.isFinite(total)) {
+                setProgressBarProgress({
+                    processed: Number.isFinite(processed) ? processed : total,
+                    total,
+                });
+            }
+            setProgressBarRunning(false);
+            showTaskStatus({ hasTask: false });
             return { done: true };
         }
         case "ean_started": {
-            if (payload.ean) {
-                setMetricCardText("remaining", `EAN ${payload.ean} в работе`);
-            }
             showTaskStatus({
-                task: "Проверка EAN",
-                status: `Запущено: ${payload.ean || "?"}`,
+                hasTask: true,
             });
             return { done: false };
         }
@@ -106,13 +117,8 @@ export function handleBackendStatusMessage(raw) {
             const stage = payload.stage ? ` (${payload.stage})` : "";
             const statusText = payload.status || "running";
             const stageMessage = payload.message ? `: ${payload.message}` : "";
-            setMetricCardText(
-                "remaining",
-                `Стадия${stage}: ${statusText}${stageMessage}`
-            );
             showTaskStatus({
-                task: "Проверка EAN",
-                status: `${payload.ean || "?"}${stage} — ${statusText}`,
+                hasTask: true,
             });
             return { done: false };
         }
@@ -121,15 +127,8 @@ export function handleBackendStatusMessage(raw) {
             const statusText = payload.status || "done";
             const baseText = `EAN ${payload.ean || "?"}${stage}`;
             const messageText = payload.message ? `: ${payload.message}` : "";
-            if (payload.status === "error") {
-                const detail = payload.detail ? ` (${payload.detail})` : "";
-                setMetricCardText("errors", `${baseText} — ошибка${messageText}${detail}`);
-            } else {
-                setMetricCardText("success", `${baseText} — успех${messageText}`);
-            }
             showTaskStatus({
-                task: "Проверка EAN",
-                status: `${payload.ean || "?"}${stage} — ${statusText}`,
+                hasTask: true,
             });
             return { done: false };
         }
@@ -186,24 +185,17 @@ function normalizeTaskStatus(payload) {
     return null;
 }
 
-function getTaskStatusContainer() {
-    return document.getElementById("task-status-container");
-}
-
-function renderActiveTask(container, taskLabel, statusText) {
-    container.innerHTML = "";
-    const text = document.createElement("div");
-    text.className = "task-status-active";
-    text.textContent = `Текущая задача: ${taskLabel}: ${statusText}`;
-    container.appendChild(text);
-}
-
-function renderNoTasks(container) {
-    container.innerHTML = "";
-    const text = document.createElement("div");
-    text.className = "task-status-empty";
-    text.textContent = "Нет задач";
-    container.appendChild(text);
+function renderNoTasks(container, state) {
+    container.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-package w-12 h-12 mx-auto mb-4 opacity-50">
+                                <path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z">
+                                </path>
+                                <path d="M12 22V12"></path>
+                                <path d="m3.3 7 7.703 4.734a2 2 0 0 0 1.994 0L20.7 7"></path>
+                                <path d="m7.5 4.27 9 5.15"></path>
+                            </svg>
+                            <h3 class="text-h3 text-foreground mb-2">Нет активной задачи</h3>
+                            <p class="text-body">Загрузите файл или проверьте товары, чтобы начать обработку</p>
+                            `;
 }
 
 function parseSocketPayload(raw) {

@@ -173,9 +173,9 @@ async function sendRequest({
     if (backButton) backButton.disabled = true;
 
     showTaskStatus({
-        task: mapOperationLabel(operation),
-        status: "Задача запущена",
+        hasTask: true,
     });
+
     if (typeof onSuccess === "function") {
         onSuccess({ operation });
     }
@@ -184,7 +184,6 @@ async function sendRequest({
     let progressSocket = initUploadProgressSocket({
         jobId,
         onMessage: async (event) => {
-            console.log(event.data);
             const data = await normalizeWsData(event.data);
             const result = handleBackendStatusMessage(data);
             if (result?.done) {
