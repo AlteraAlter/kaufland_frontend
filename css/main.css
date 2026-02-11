@@ -306,6 +306,16 @@ a {
     cursor: pointer;
 }
 
+.upload-close-btn,
+.check-close-btn,
+.single-close-btn,
+.multiple-close-btn,
+.delete-close-btn {
+    background: transparent;
+    border: 0;
+    padding: 0;
+}
+
 .upload-close-btn:hover {
     opacity: 1;
 }
@@ -934,6 +944,61 @@ a {
 .text-caption {
     font-size: 12px;
     line-height: 1.4;
+}
+
+[data-backend-response-preview="true"] {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    margin: 0 auto;
+    padding: 1rem;
+}
+
+[data-backend-response-preview="true"] * {
+    min-width: 0;
+}
+
+@media (max-width: 768px) {
+    [data-backend-response-preview="true"] {
+        padding: 0.75rem;
+    }
+}
+
+.backend-response-group {
+    transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.backend-response-group[open] {
+    box-shadow: 0 8px 20px rgb(0 0 0 / 0.06);
+    border-color: hsl(var(--primary) / 0.35);
+}
+
+.backend-response-summary {
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.backend-response-summary:hover {
+    background-color: hsl(var(--secondary));
+}
+
+.backend-response-group[open] .backend-response-summary {
+    background-color: hsl(var(--secondary) / 0.65);
+}
+
+.backend-response-body {
+    animation: backend-response-fade-in 0.2s ease;
+}
+
+@keyframes backend-response-fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .text-success {

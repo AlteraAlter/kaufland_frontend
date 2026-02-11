@@ -9,7 +9,12 @@ export function initProgressBarStatus({ success = 0, error = 0, queue = 0 } = {}
         console.log("Container not found");
         return;
     }
-    if (statusNodes && progressNodes) return;
+    if (statusNodes && progressNodes) {
+        setProgressBarStatus({ success, error, queue });
+        setProgressBarProgress({ processed: 0, total: 0 });
+        setProgressBarRunning(true);
+        return;
+    }
 
     statusNodes = getStatusNodes(container);
     progressNodes = getProgressNodes(container);
@@ -62,7 +67,7 @@ export function setProgressBarProgress({ processed, total } = {}) {
         progressNodes.bar.setAttribute("data-state", "determinate");
         progressNodes.fill.setAttribute("data-state", "determinate");
         progressNodes.fill.style.transform = "translateX(-100%)";
-        setProgressBarRunning(true);
+        setProgressBarRunning(false);
         return;
     }
 

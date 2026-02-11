@@ -29,6 +29,7 @@ export function initDeleteModal() {
             fileStatusSelector: "#deleteFileStatus",
             readyText: "Готов к удалению",
             onSuccess: () => close(),
+            enableControllerSelect: true,
         });
     }
 }

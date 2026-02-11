@@ -2,7 +2,17 @@ import { qs, on } from "../../core/dom.js";
 import { openModal, closeModal, bindOverlayClose, bindEscapeClose } from "../../ui/modal.js";
 import { initFileSelect } from "../../ui/fileSelect.js";
 import { sendEanRequest } from "../../services/api.js";
-import { mapOperationLabel, showTaskStatus } from "../../ui/taskStatus.js";
+import {
+    applyTaskSnapshot,
+    applyTaskSummaryFromResponse,
+    resetTaskUi,
+    showTaskStatus,
+} from "../../ui/taskStatus.js";
+import { setProgressBarRunning } from "../../ui/progressBarStatus.js";
+import {
+    clearBackendResponsePreview,
+    renderBackendResponsePreview,
+} from "../../ui/backendResponsePreview.js";
 
 export function initCheckModal() {
     const modal = qs("#check-modal");
@@ -105,6 +115,7 @@ export function initCheckModal() {
             fileInputSelector: "#check-file-upload",
             fileStatusSelector: "#multipleFileStatus",
             onSuccess: () => closeMultiple(),
+            enableControllerSelect: true,
         });
     }
 
@@ -128,33 +139,95 @@ export function initCheckModal() {
             }
 
             singleSubmit.disabled = true;
+            clearBackendResponsePreview();
+            resetTaskUi({ total: 1, running: true });
             showTaskStatus({
-                task: mapOperationLabel("check"),
-                status: `Проверка EAN ${normalized}`,
+                hasTask: true,
             });
+            applyTaskSnapshot({
+                total: 1,
+                success: 0,
+                error: 0,
+                remaining: 1,
+                running: true,
+            });
+            closeSingle();
 
             try {
                 const response = await sendEanRequest({
                     ean: normalized,
                     token: localStorage.getItem("jwt_access"),
                 });
+                const responseBody = await parseResponseBody(response);
                 if (!response?.ok) {
                     const code = response ? response.status : "unknown";
                     throw new Error(`Request failed with status ${code}`);
                 }
                 showTaskStatus({
-                    task: mapOperationLabel("check"),
-                    status: `EAN ${normalized} проверен`,
+                    hasTask: true,
+                });
+                const previewPayload = resolveSingleCheckPreviewPayload(responseBody, normalized);
+                renderBackendResponsePreview({
+                    operation: "check",
+                    payload: previewPayload,
+                });
+                applyTaskSummaryFromResponse({
+                    operation: "check",
+                    payload: previewPayload,
+                });
+                showTaskStatus({
+                    hasTask: true,
                 });
             } catch (error) {
                 console.error(error);
                 showTaskStatus({
-                    task: mapOperationLabel("check"),
-                    status: `Ошибка проверки EAN ${normalized}`,
+                    hasTask: true,
                 });
             } finally {
+                setProgressBarRunning(false);
                 updateSingleState();
             }
         });
     }
+}
+
+async function parseResponseBody(response) {
+    if (!response) return null;
+    const contentType = response.headers.get("content-type") || "";
+    if (contentType.includes("application/json")) {
+        return response.json();
+    }
+    const text = await response.text();
+    if (!text) return null;
+    try {
+        return JSON.parse(text);
+    } catch {
+        return text;
+    }
+}
+
+function resolveSingleCheckPreviewPayload(responseBody, fallbackEan) {
+    if (Array.isArray(responseBody)) return responseBody;
+    if (responseBody && typeof responseBody === "object") {
+        if (Array.isArray(responseBody.result)) {
+            if (responseBody.result.length > 0) return responseBody.result;
+            return [{
+                ean: fallbackEan,
+                title: null,
+                price: null,
+                storefront: null,
+                status: "not_found",
+            }];
+        }
+        if (responseBody.ean || responseBody.title || responseBody.price || responseBody.storefront) {
+            return [responseBody];
+        }
+    }
+    return [{
+        ean: fallbackEan,
+        title: null,
+        price: null,
+        storefront: null,
+        status: "not_found",
+    }];
 }

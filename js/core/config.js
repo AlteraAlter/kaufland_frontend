@@ -9,4 +9,6 @@ export const ENDPOINTS = {
 
 export const WS_ENDPOINTS = {
     uploadProgress: "/ws/upload-progress/",
+    checkerProgress: "/ws/checker-progress",
+    deleteProgress: "/ws/delete-progress",
 };

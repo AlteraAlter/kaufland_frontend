@@ -7,17 +7,22 @@ import {
 } from "./progressBarStatus.js";
 import { qs } from "../core/dom.js"
 
+let liveJobRuntime = createEmptyRuntime();
+
 export function showTaskStatus({ hasTask, message } = {}) {
     const noTaskContainer = qs("#no-task-container");
     const statusTaskContainer = qs("#status-taks-container");
+    if (!noTaskContainer || !statusTaskContainer) return;
 
     if (hasTask) {
+        const wasHidden = statusTaskContainer.style.display === "none" || !statusTaskContainer.style.display;
         statusTaskContainer.style.display = "block";
         noTaskContainer.style.display = "none";
-        initProgressBarStatus({ success: 0, error: 0, queue: 0 });
+        if (wasHidden) {
+            initProgressBarStatus({ success: 0, error: 0, queue: 0 });
+        }
     }
     else {
-        return;
         noTaskContainer.style.display = "block";
         statusTaskContainer.style.display = "none";
     }
@@ -27,12 +32,13 @@ export function handleBackendStatusMessage(raw) {
     const parsed = parseSocketPayload(raw);
     if (!parsed) return { done: false };
 
-    const { event, payload } = normalizeEvent(parsed);
+    const { event, payload, info } = normalizeEvent(parsed);
     if (!event || !payload) return { done: false };
 
     switch (event) {
         case "job_started": {
             const total = toNumber(payload.total);
+            resetLiveJobRuntime({ total, processed: 0, success: 0, error: 0 });
             if (Number.isFinite(total)) {
                 setMetricCardValue("totalProducts", total);
                 setMetricCardValue("success", 0);
@@ -52,27 +58,81 @@ export function handleBackendStatusMessage(raw) {
             });
             return { done: false };
         }
+        case "item": {
+            liveJobRuntime.mode = "check";
+            const ean = String(payload.ean || "").trim();
+            const items = Array.isArray(payload.items) ? payload.items : [];
+            const notFound = items.length === 0 || String(info || "").toLowerCase().includes("not found");
+            if (ean && !liveJobRuntime.countedEans.has(ean)) {
+                liveJobRuntime.countedEans.add(ean);
+                if (notFound) {
+                    liveJobRuntime.error += 1;
+                } else {
+                    liveJobRuntime.success += 1;
+                }
+            }
+            if (items.length > 0) {
+                items.forEach((item) => {
+                    liveJobRuntime.checkRows.push({
+                        ...item,
+                        ean: item?.ean || ean,
+                    });
+                });
+            } else {
+                liveJobRuntime.checkRows.push({
+                    ean,
+                    title: null,
+                    price: null,
+                    storefront: null,
+                    status: "not_found",
+                });
+            }
+            applyRuntimeMetrics();
+            return { done: false, previewPayload: [...liveJobRuntime.checkRows] };
+        }
+        case "storefront_result": {
+            liveJobRuntime.mode = "delete";
+            const key = `${String(payload.ean || "")}:${String(payload.storefront || "")}`;
+            if (key && !liveJobRuntime.countedStorefrontKeys.has(key)) {
+                liveJobRuntime.countedStorefrontKeys.add(key);
+                liveJobRuntime.deleteRows.push({
+                    ean: payload.ean || "",
+                    title: null,
+                    price: null,
+                    storefront: payload.storefront || null,
+                    status: payload.result || "",
+                });
+            }
+            return { done: false, previewPayload: [...liveJobRuntime.deleteRows] };
+        }
         case "job_progress": {
             const total = toNumber(payload.total);
             const processed = toNumber(payload.processed);
-            const success = toNumber(payload.success);
-            const error = toNumber(payload.error);
-            let remaining = null;
-            if (Number.isFinite(total)) setMetricCardValue("totalProducts", total);
-            if (Number.isFinite(success)) setMetricCardValue("success", success);
-            if (Number.isFinite(error)) setMetricCardValue("errors", error);
-            if (Number.isFinite(total) && Number.isFinite(processed)) {
-                remaining = Math.max(0, total - processed);
-                setMetricCardValue("remaining", remaining);
+
+            if (Number.isFinite(total)) {
+                liveJobRuntime.total = total;
+                setMetricCardValue("totalProducts", total);
             }
-            setProgressBarStatus({
-                success,
-                error,
-                queue: Number.isFinite(remaining) ? remaining : undefined,
-            });
+            if (Number.isFinite(processed)) {
+                const prevProcessed = Number.isFinite(liveJobRuntime.processed) ? liveJobRuntime.processed : 0;
+                const status = String(payload.status || "").toLowerCase();
+                if (processed > prevProcessed && (status === "success" || status === "failed")) {
+                    if (status === "success") liveJobRuntime.success += 1;
+                    if (status === "failed") liveJobRuntime.error += 1;
+                }
+                liveJobRuntime.processed = processed;
+            }
+            applyRuntimeMetrics();
+
             if (Number.isFinite(total) && Number.isFinite(processed)) {
                 setProgressBarProgress({ processed, total });
             }
+
+            setProgressBarStatus({
+                success: liveJobRuntime.success,
+                error: liveJobRuntime.error,
+                queue: getRuntimeRemaining(),
+            });
 
             showTaskStatus({
                 hasTask: true,
@@ -83,19 +143,35 @@ export function handleBackendStatusMessage(raw) {
             const total = toNumber(payload.total);
             const processed = toNumber(payload.processed);
             const success = toNumber(payload.success);
+            const failed = toNumber(payload.failed);
             const error = toNumber(payload.error);
+            const resultCount = toNumber(payload.result_count);
             let remaining = null;
+
+            if (Number.isFinite(total)) liveJobRuntime.total = total;
+            if (Number.isFinite(processed)) liveJobRuntime.processed = processed;
+            if (Number.isFinite(success)) liveJobRuntime.success = success;
+            if (Number.isFinite(failed)) liveJobRuntime.error = failed;
+            else if (Number.isFinite(error)) liveJobRuntime.error = error;
+            else if (Number.isFinite(resultCount) && Number.isFinite(total)) {
+                liveJobRuntime.success = resultCount;
+                liveJobRuntime.error = Math.max(0, total - resultCount);
+            }
+
             if (Number.isFinite(total)) setMetricCardValue("totalProducts", total);
-            if (Number.isFinite(success)) setMetricCardValue("success", success);
-            if (Number.isFinite(error)) setMetricCardValue("errors", error);
+            setMetricCardValue("success", liveJobRuntime.success);
+            setMetricCardValue("errors", liveJobRuntime.error);
             if (Number.isFinite(total) && Number.isFinite(processed)) {
                 remaining = Math.max(0, total - processed);
                 setMetricCardValue("remaining", remaining);
+            } else {
+                remaining = getRuntimeRemaining();
+                setMetricCardValue("remaining", remaining);
             }
             setProgressBarStatus({
-                success,
-                error,
-                queue: Number.isFinite(remaining) ? remaining : 0,
+                success: liveJobRuntime.success,
+                error: liveJobRuntime.error,
+                queue: Number.isFinite(remaining) ? remaining : getRuntimeRemaining(),
             });
             if (Number.isFinite(total)) {
                 setProgressBarProgress({
@@ -104,7 +180,35 @@ export function handleBackendStatusMessage(raw) {
                 });
             }
             setProgressBarRunning(false);
-            showTaskStatus({ hasTask: false });
+            showTaskStatus({ hasTask: true });
+            const completedResult = Array.isArray(payload.result) ? payload.result : null;
+            return {
+                done: true,
+                previewPayload: completedResult || (liveJobRuntime.mode === "delete"
+                    ? [...liveJobRuntime.deleteRows]
+                    : [...liveJobRuntime.checkRows]),
+            };
+        }
+        case "job_failed": {
+            const total = toNumber(payload.total);
+            const processed = toNumber(payload.processed);
+            const success = toNumber(payload.success);
+            const error = toNumber(payload.error);
+            let remaining = null;
+            if (Number.isFinite(total)) setMetricCardValue("totalProducts", total);
+            if (Number.isFinite(success)) setMetricCardValue("success", success);
+            if (Number.isFinite(error)) setMetricCardValue("errors", error);
+            if (Number.isFinite(total) && Number.isFinite(processed)) {
+                remaining = Math.max(0, total - processed);
+                setMetricCardValue("remaining", remaining);
+                setProgressBarProgress({ processed, total });
+            }
+            setProgressBarStatus({
+                success,
+                error,
+                queue: Number.isFinite(remaining) ? remaining : 0,
+            });
+            setProgressBarRunning(false);
             return { done: true };
         }
         case "ean_started": {
@@ -114,19 +218,20 @@ export function handleBackendStatusMessage(raw) {
             return { done: false };
         }
         case "progress": {
-            const stage = payload.stage ? ` (${payload.stage})` : "";
-            const statusText = payload.status || "running";
-            const stageMessage = payload.message ? `: ${payload.message}` : "";
+            if (isTerminalStatus(payload.status)) {
+                setProgressBarRunning(false);
+                return { done: true };
+            }
             showTaskStatus({
                 hasTask: true,
             });
             return { done: false };
         }
         case "ean_completed": {
-            const stage = payload.stage ? ` (${payload.stage})` : "";
-            const statusText = payload.status || "done";
-            const baseText = `EAN ${payload.ean || "?"}${stage}`;
-            const messageText = payload.message ? `: ${payload.message}` : "";
+            if (isTerminalStatus(payload.status) && !payload.ean) {
+                setProgressBarRunning(false);
+                return { done: true };
+            }
             showTaskStatus({
                 hasTask: true,
             });
@@ -148,6 +253,90 @@ export function mapOperationLabel(operation) {
         default:
             return "Задача";
     }
+}
+
+export function applyTaskSummaryFromResponse({ operation, payload }) {
+    const summary = summarizeResponse(operation, payload);
+    if (!summary) return;
+
+    const { total, success, error } = summary;
+    const remaining = Math.max(0, total - success - error);
+
+    setMetricCardValue("totalProducts", total);
+    setMetricCardValue("success", success);
+    setMetricCardValue("errors", error);
+    setMetricCardValue("remaining", remaining);
+
+    setProgressBarStatus({
+        success,
+        error,
+        queue: remaining,
+    });
+    setProgressBarProgress({
+        processed: total - remaining,
+        total,
+    });
+    setProgressBarRunning(false);
+    showTaskStatus({ hasTask: true });
+}
+
+export function resetTaskUi({ total = 0, running = true } = {}) {
+    const totalValue = Number.isFinite(Number(total)) && Number(total) > 0
+        ? Number(total)
+        : 0;
+    resetLiveJobRuntime({ total: totalValue, processed: 0, success: 0, error: 0 });
+
+    setMetricCardValue("totalProducts", totalValue);
+    setMetricCardValue("success", 0);
+    setMetricCardValue("errors", 0);
+    setMetricCardValue("remaining", totalValue);
+
+    setProgressBarStatus({
+        success: 0,
+        error: 0,
+        queue: totalValue,
+    });
+    setProgressBarProgress({
+        processed: 0,
+        total: totalValue,
+    });
+    setProgressBarRunning(running);
+    showTaskStatus({ hasTask: true });
+}
+
+export function applyTaskSnapshot({
+    total,
+    success = 0,
+    error = 0,
+    remaining,
+    running = true,
+} = {}) {
+    const totalValue = Number(total);
+    if (!Number.isFinite(totalValue) || totalValue < 0) return;
+
+    const successValue = Number.isFinite(Number(success)) ? Number(success) : 0;
+    const errorValue = Number.isFinite(Number(error)) ? Number(error) : 0;
+    const computedRemaining = Number.isFinite(Number(remaining))
+        ? Number(remaining)
+        : Math.max(0, totalValue - successValue - errorValue);
+    const processed = Math.max(0, totalValue - computedRemaining);
+
+    setMetricCardValue("totalProducts", totalValue);
+    setMetricCardValue("success", successValue);
+    setMetricCardValue("errors", errorValue);
+    setMetricCardValue("remaining", computedRemaining);
+
+    setProgressBarStatus({
+        success: successValue,
+        error: errorValue,
+        queue: computedRemaining,
+    });
+    setProgressBarProgress({
+        processed,
+        total: totalValue,
+    });
+    setProgressBarRunning(running);
+    showTaskStatus({ hasTask: true });
 }
 
 export function parseTaskStatus(raw) {
@@ -211,11 +400,15 @@ function parseSocketPayload(raw) {
 }
 
 function normalizeEvent(data) {
-    if (!data || typeof data !== "object") return { event: null, payload: null };
+    if (!data || typeof data !== "object") return { event: null, payload: null, info: null };
     if (typeof data.event === "string") {
-        return { event: data.event, payload: data.payload ?? data };
+        return {
+            event: data.event,
+            payload: data.payload ?? data,
+            info: data.info ?? null,
+        };
     }
-    return { event: inferEvent(data), payload: data };
+    return { event: inferEvent(data), payload: data, info: null };
 }
 
 function inferEvent(data) {
@@ -225,6 +418,7 @@ function inferEvent(data) {
     if (has("processed") && has("success") && has("error") && has("ean")) return "job_progress";
     if (has("status") && has("ean") && has("item") && !has("stage")) return "ean_started";
     if (has("stage") && (data.status === "success" || data.status === "error")) return "ean_completed";
+    if (isTerminalStatus(data.status)) return "job_failed";
     if (has("stage")) return "progress";
     return null;
 }
@@ -232,4 +426,136 @@ function inferEvent(data) {
 function toNumber(value) {
     const num = Number(value);
     return Number.isFinite(num) ? num : null;
+}
+
+function isTerminalStatus(status) {
+    const normalized = String(status || "").toLowerCase();
+    return normalized === "error" || normalized === "failed" || normalized === "cancelled" || normalized === "canceled" || normalized === "stopped";
+}
+
+function summarizeResponse(operation, payload) {
+    if (operation === "check") {
+        return summarizeCheckResponse(payload);
+    }
+
+    if (Array.isArray(payload)) {
+        const total = payload.length;
+        const error = payload.filter((item) => isErrorItem(operation, item)).length;
+        return { total, error, success: Math.max(0, total - error) };
+    }
+
+    if (payload && typeof payload === "object") {
+        const total = Number.isFinite(Number(payload.total)) ? Number(payload.total) : 1;
+        const success = Number.isFinite(Number(payload.success))
+            ? Number(payload.success)
+            : isErrorItem(operation, payload)
+                ? 0
+                : total;
+        const error = Number.isFinite(Number(payload.error))
+            ? Number(payload.error)
+            : Math.max(0, total - success);
+        return { total, success, error };
+    }
+
+    if (payload == null) return null;
+    return { total: 1, success: 1, error: 0 };
+}
+
+function summarizeCheckResponse(payload) {
+    if (Array.isArray(payload)) {
+        const groups = groupByEan(payload);
+        if (groups.size > 0) {
+            const total = groups.size;
+            let error = 0;
+            groups.forEach((items) => {
+                const hasSuccess = items.some((item) => !isErrorItem("check", item));
+                if (!hasSuccess) error += 1;
+            });
+            return {
+                total,
+                error,
+                success: Math.max(0, total - error),
+            };
+        }
+
+        const total = payload.length;
+        const error = payload.filter((item) => isErrorItem("check", item)).length;
+        return { total, error, success: Math.max(0, total - error) };
+    }
+
+    if (payload && typeof payload === "object") {
+        const error = isErrorItem("check", payload) ? 1 : 0;
+        return { total: 1, success: error ? 0 : 1, error };
+    }
+
+    if (payload == null) return null;
+    return { total: 1, success: 1, error: 0 };
+}
+
+function groupByEan(items) {
+    const groups = new Map();
+    items.forEach((item) => {
+        const raw = item && typeof item === "object" ? item.ean : null;
+        const ean = raw == null ? "" : String(raw).trim();
+        if (!ean) return;
+        if (!groups.has(ean)) groups.set(ean, []);
+        groups.get(ean).push(item);
+    });
+    return groups;
+}
+
+function isErrorItem(operation, item) {
+    if (!item || typeof item !== "object") return false;
+    const status = String(item.status || "").toLowerCase();
+    if (status === "error" || status === "failed" || status === "not_found") return true;
+    if (item.error) return true;
+
+    if (operation === "check") {
+        if (item.exists === false) return true;
+        if (item.found === false) return true;
+        if (item.title == null || item.title === "") return true;
+    }
+    return false;
+}
+
+function createEmptyRuntime() {
+    return {
+        mode: null,
+        total: 0,
+        processed: 0,
+        success: 0,
+        error: 0,
+        countedEans: new Set(),
+        countedStorefrontKeys: new Set(),
+        checkRows: [],
+        deleteRows: [],
+    };
+}
+
+function resetLiveJobRuntime({ total, processed, success, error } = {}) {
+    liveJobRuntime = createEmptyRuntime();
+    if (Number.isFinite(Number(total))) liveJobRuntime.total = Number(total);
+    if (Number.isFinite(Number(processed))) liveJobRuntime.processed = Number(processed);
+    if (Number.isFinite(Number(success))) liveJobRuntime.success = Number(success);
+    if (Number.isFinite(Number(error))) liveJobRuntime.error = Number(error);
+}
+
+function getRuntimeRemaining() {
+    if (!Number.isFinite(liveJobRuntime.total)) return 0;
+    if (Number.isFinite(liveJobRuntime.processed) && liveJobRuntime.processed >= 0) {
+        return Math.max(0, liveJobRuntime.total - liveJobRuntime.processed);
+    }
+    return Math.max(0, liveJobRuntime.total - liveJobRuntime.success - liveJobRuntime.error);
+}
+
+function applyRuntimeMetrics() {
+    setMetricCardValue("totalProducts", liveJobRuntime.total);
+    setMetricCardValue("success", liveJobRuntime.success);
+    setMetricCardValue("errors", liveJobRuntime.error);
+    setMetricCardValue("remaining", getRuntimeRemaining());
+    setProgressBarStatus({
+        success: liveJobRuntime.success,
+        error: liveJobRuntime.error,
+        queue: getRuntimeRemaining(),
+    });
 }

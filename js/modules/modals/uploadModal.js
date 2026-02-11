@@ -16,6 +16,10 @@ export function initUploadModal() {
 
     on(openBtn, "click", open);
     on(closeBtn, "click", close);
+    modal.addEventListener("click", (event) => {
+        const closeTarget = event.target.closest("#uploadCloseBtn");
+        if (closeTarget) close();
+    });
 
     bindOverlayClose(modal, close);
     bindEscapeClose(() => {
@@ -28,6 +32,8 @@ export function initUploadModal() {
             jsonOnly: true,
             jsonCountCardKey: "totalProducts",
             onSuccess: () => close(),
+            enableControllerSelect: true,
+            floatingCloseButtonId: "uploadCloseBtn",
         });
     }
 }
